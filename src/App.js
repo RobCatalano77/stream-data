@@ -1,31 +1,16 @@
 import { useTable } from 'react-table'
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import React from 'react';
 import { decodeArrayStream } from '@msgpack/msgpack';
 import { asyncIterableFromStream } from '@msgpack/msgpack/dist/utils/stream';
+import DataTable from './DataTable';
 import axios from 'axios';
  
  function App() {
 
-  const [loadedData, setLoadedData] = useState(null);
-
-   const data = React.useMemo(
-     () => [
-       {
-         col1: 'Hello',
-         col2: 'World',
-       },
-       {
-         col1: 'react-table',
-         col2: 'rocks',
-       },
-       {
-         col1: 'whatever',
-         col2: 'you want',
-       },
-     ],
-     []
-   );
+  const [rowData, setRowData] = useState([])
+  const rowDataRef= useRef({});
+  rowDataRef.current = rowData;
  
    const columns = React.useMemo(
      () => [
@@ -44,17 +29,10 @@ import axios from 'axios';
    // I would think that I would need to set data to 
    // the loadedData state variable, but it breaks
    // if I do that.
-   const {
-     getTableProps,
-     getTableBodyProps,
-     headerGroups,
-     rows,
-     prepareRow,
-   } = useTable({ columns, data });
+   
 
    async function fetchDataJSON() {
     const res = await fetch('http://localhost:4567/hello2');
-    console.log(res.headers.get("Content-Length"))
     const streamReader = res.body;
     const resLength = 0;
     //streamReader.forEach(i => {resLength++});
@@ -62,19 +40,19 @@ import axios from 'axios';
     return streamReader;
   }
 
-  async function iterThroughResponse(reader) {
+  async function iterThroughResponse(reader) { 
     const streamIterator = asyncIterableFromStream(reader);
     for await(const event of decodeArrayStream(streamIterator)) {
       // Here we have decoded event that we can start processing, inserting into Redux and updating UI.  
       console.log(String.fromCharCode(event));
+      setRowData(rowDataRef.current.concat({col1: "1", col2: String.fromCharCode(event)}));
+      await new Promise(r => setTimeout(r, 500));
     }
   }
 
   useEffect(() => {
     fetchDataJSON().then(reader => {return iterThroughResponse(reader)});
   }, []);
-
-  
 
    /*fetch("http://localhost:4567/hello3")
    .then(res => {
@@ -149,50 +127,9 @@ import axios from 'axios';
   */
   
    return (
-     <table {...getTableProps()} style={{ border: 'solid 1px blue' }}>
-       <thead>
-         {headerGroups.map(headerGroup => (
-           <tr {...headerGroup.getHeaderGroupProps()}>
-             {headerGroup.headers.map(column => (
-               <th
-                 {...column.getHeaderProps()}
-                 style={{
-                   borderBottom: 'solid 3px red',
-                   background: 'aliceblue',
-                   color: 'black',
-                   fontWeight: 'bold',
-                 }}
-               >
-                 {column.render('Header')}
-               </th>
-             ))}
-           </tr>
-         ))}
-       </thead>
-       <tbody {...getTableBodyProps()}>
-         {rows.map(row => {
-           prepareRow(row)
-           return (
-             <tr {...row.getRowProps()}>
-               {row.cells.map(cell => {
-                 return (
-                   <td
-                     {...cell.getCellProps()}
-                     style={{
-                       padding: '10px',
-                       border: 'solid 1px gray',
-                       background: 'papayawhip',
-                     }}
-                   >
-                     {cell.render('Cell')}
-                   </td>
-                 )
-               })}
-             </tr>
-           )
-         })}
-       </tbody>
-     </table>
+    <div className="flex justify-center mt-8">
+        <DataTable columns={columns} data={rowData} />
+    </div>
    )
  }
 
