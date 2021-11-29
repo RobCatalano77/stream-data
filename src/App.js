@@ -6,8 +6,41 @@ import { asyncIterableFromStream } from '@msgpack/msgpack/dist/utils/stream';
 import DataTable from './DataTable';
 import axios from 'axios';
 import SubRowAsync from './SubRowAsync';
+import TableWithSubs from './TableWithSubs';
+import styled from 'styled-components';
+import SubRows from './SubRows';
 const fs = require('fs');
 const util = require('util');
+
+const Styles = styled.div`
+  padding: 1rem;
+
+  table {
+    border-spacing: 0;
+    border: 1px solid black;
+
+    tr {
+      :last-child {
+        td {
+          border-bottom: 0;
+        }
+      }
+    }
+
+    th,
+    td {
+      margin: 0;
+      padding: 0.5rem;
+      border-bottom: 1px solid black;
+      border-right: 1px solid black;
+
+      :last-child {
+        border-right: 0;
+      }
+    }
+  }
+`;
+
  
  function App() {
 
@@ -34,7 +67,11 @@ const util = require('util');
       },
       {
         Header: 'Col1',
-        accessor: (d) => d.firstName,
+        accessor: (d) => {
+          console.log("d: " + typeof(d));
+          console.log(JSON.stringify(d));
+          return d.col1;
+        },
         // We can render something different for subRows
         SubCell: (cellProps) => (
           <>🥳 {cellProps.value} 🎉</>
@@ -42,20 +79,23 @@ const util = require('util');
       },
       {
         Header: 'Col2',
-        accessor: (d) => d.type,
+        accessor: (d) => d.col2,
       }
     ],
     []
   );
 
   const renderRowSubComponent = React.useCallback(
-    ({ row, rowProps, visibleColumns }) => (
+    ({ row, rowProps, visibleColumns }) => {
+      console.log("subrowprops: " + rowProps);
+      console.log(row);
+      return (
       <SubRowAsync
         row={row}
         rowProps={rowProps}
         visibleColumns={visibleColumns}
       />
-    ),
+    )},
     []
   );
     /*
@@ -98,12 +138,14 @@ const handleJsonChunk = (jsonChunk) => {
   
   for (var key of Object.keys(jsonChunk)) {
     console.log(key + " -> " + jsonChunk[key])
-    const newKeyStr = "{" + key + "}";
-    const newValStr = "{" + jsonChunk[key] + "}";
-    const newKeyObj = JSON.parse(newKeyStr);
-    const newValObj = JSON.parse(newValStr);
+    //const newKeyStr = "{" + key + "}";
+    //const newValStr = "{" + jsonChunk[key] + "}";
+    const newKeyObj = JSON.parse(key);
+    const newValObj = JSON.parse(jsonChunk[key]);
+    console.log(newKeyObj.key);
+    console.log(newValObj.type);
     //for (var innerKey of Object.keys(newKeyObj)) {
-      setRowData(rowDataRef.current.concat({col1: newKeyObj.key, col2: newValObj.type}));
+      setRowData(rowDataRef.current.concat({col1: newKeyObj.key, col2: newKeyObj.asOfTime, sub:newValObj.type}));
     //}
   }
 };
@@ -124,6 +166,7 @@ const grabData = async () => {
           stringValue = stringValue.substr(0, stringValue.length - 1);
 
         try {
+          console.log("stringValue: " + stringValue);
           const jsonValue = JSON.parse(stringValue);
           handleJsonChunk(jsonValue);
         } catch (error) {
@@ -219,7 +262,9 @@ const grabData = async () => {
   
    return (
     <div className="flex justify-center mt-8">
-        <DataTable columns={columns} data={rowData} />
+        <Styles>
+        <TableWithSubs columns={columns} data={rowData} renderRowSubComponent={renderRowSubComponent} />
+        </Styles>
     </div>
    )
  }
