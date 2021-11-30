@@ -85,34 +85,19 @@ const Styles = styled.div`
     []
   );
 
+  // Create a function that will render our row sub components
   const renderRowSubComponent = React.useCallback(
-    ({ row, rowProps, visibleColumns }) => {
-      console.log("subrowprops: " + rowProps);
-      console.log(row);
-      return (
-      <SubRowAsync
-        row={row}
-        rowProps={rowProps}
-        visibleColumns={visibleColumns}
-      />
-    )},
+    ({ row }) => (
+      <pre
+        style={{
+          fontSize: '10px',
+        }}
+      >
+        <code>{JSON.stringify({ values: row.original.sub }, null, 2)}</code>
+      </pre>
+    ),
     []
-  );
-    /*
-  const columns = React.useMemo(
-    () => [
-      {
-        Header: 'Column 1',
-        accessor: 'col1', // accessor is the "key" in the data
-      },
-      {
-        Header: 'Column 2',
-        accessor: 'col2',
-      },
-    ],
-    []
-  );
-    */
+  )
   async function fetchDataJSON() {
     const res = await fetch('http://localhost:4567/hello2');
     const streamReader = res.body;
